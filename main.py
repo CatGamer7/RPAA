@@ -31,7 +31,7 @@ def main():
             args.subreddit,
             args.flairs,
             CSV_Model,
-            args.limit
+            int(args.limit)
         )
 
         writer.writerow(CSV_Model.TUPLE_HEADERS)

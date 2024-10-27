@@ -4,7 +4,7 @@ from .base_model import Base_Model
 class CSV_Model(Base_Model):
 
     TUPLE_HEADERS = ("full_name", "text_body", "author_name", "votes",
-                     "responds_to", "parent_submission_name", "submission flair",
+                     "responds_to", "parent_submission_name", "submission_flair",
                      "created_timestamp", "parsed_timestamp", "controversiality"
     )
     

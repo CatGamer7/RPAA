@@ -53,60 +53,60 @@ class Extended_Reddit_RO(Reddit):
             lambda x: "flair:" + x,
             flairs
         )
-        search_query = " OR ".join(prefix_flairs)
         subreddit = self.subreddit(subreddit_display_name)
 
-        for submission in subreddit.search(search_query, limit=parse_limit):
+        for flair in prefix_flairs:
+            for submission in subreddit.search(flair, limit=parse_limit):
 
-            submission_node = Model(
-                submission.fullname,
-                submission.title,
-                submission.author_fullname,
-                submission.score,
-                None,
-                None,
-                submission.link_flair_text,
-                submission.created,
-                None
-            )
-
-            yield submission_node
-
-            submission.comments.replace_more(limit=replace_limit)
-            queue = Extended_Reddit_RO._pack_parent(
-                submission.comments[:], 
-                None
-            )
-
-            while queue:
-                comment, parent = queue.pop(0)
-
-                if not ("author_fullname" in vars(comment)):
-                    comment.author_fullname = None
-
-                if comment.body == "[deleted]":
-                    comment.body = None
-
-                comment_node = Model(
-                    comment.fullname,
-                    comment.body,
-                    comment.author_fullname,
-                    comment.score,
-                    parent,
+                submission_node = Model(
+                    submission.fullname,
+                    submission.title,
+                    submission.author_fullname,
+                    submission.score,
+                    None,
                     submission.fullname,
                     submission.link_flair_text,
                     submission.created,
-                    comment.controversiality
+                    None
                 )
 
-                yield comment_node
+                yield submission_node
 
-                queue.extend(
-                    Extended_Reddit_RO._pack_parent(
-                        comment.replies, 
-                        comment.fullname
+                submission.comments.replace_more(limit=replace_limit)
+                queue = Extended_Reddit_RO._pack_parent(
+                    submission.comments[:], 
+                    submission.fullname
+                )
+
+                while queue:
+                    comment, parent = queue.pop(0)
+
+                    if not ("author_fullname" in vars(comment)):
+                        comment.author_fullname = None
+
+                    if comment.body == "[deleted]":
+                        comment.body = None
+
+                    comment_node = Model(
+                        comment.fullname,
+                        comment.body,
+                        comment.author_fullname,
+                        comment.score,
+                        parent,
+                        submission.fullname,
+                        submission.link_flair_text,
+                        submission.created,
+                        comment.controversiality
                     )
-                )
+
+                    yield comment_node
+
+                    queue.extend(
+                        Extended_Reddit_RO._pack_parent(
+                            comment.replies, 
+                            comment.fullname
+                        )
+                    )
 
     @staticmethod
     def _pack_parent(comments: iter, parent: str) -> list[tuple[Comment, str]]:
