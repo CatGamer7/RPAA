@@ -7,7 +7,7 @@ from parser.data_model import CSV_Model
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-o", "--output", help="Output file name", required=True)
+    parser.add_argument("-o", "--output", help="Output file name")
     parser.add_argument("-cid", "--client_id", help="Client id of reddit app", required=True)
     parser.add_argument("-cs", "--client_secret", help="Client secret of reddit app", required=True)
     parser.add_argument("-u", "--user_agent", help="User agent of reddit app", required=True)
