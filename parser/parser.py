@@ -39,9 +39,92 @@ class Extended_Reddit_RO(Reddit):
                 ratelimit_seconds = ratelimit_seconds
             )
 
-    def parse_subreddit(
-            self, subreddit_display_name: str,
-            flairs: list[str], Model: type[Base_Model] = CSV_Model,
+
+    def parse_subreddit_no_flair(
+            self,
+            subreddit_display_name: str,
+            flairs: list[str],
+            model: type[Base_Model] = CSV_Model,
+            search_terms: list[str] = None,
+            parse_limit: int = 10000,
+            replace_limit: int = None
+    ) -> Generator[Base_Model]:
+        
+        return self._parse_subreddit(
+            subreddit_display_name,
+            search_terms,
+            model,
+            parse_limit,
+            replace_limit
+        )
+
+
+    def parse_subreddit_ex_flair(
+            self,
+            subreddit_display_name: str,
+            flairs: list[str],
+            model: type[Base_Model] = CSV_Model,
+            search_terms: list[str] = None,
+            parse_limit: int = 10000,
+            replace_limit: int = None
+    ) -> Generator[Base_Model]:
+        
+        prefix_flairs = map(
+            lambda x: "flair:" + x,
+            flairs
+        )
+        flairs_set = " OR ".join(prefix_flairs)
+        flairs_negated = f"NOT ({flairs_set})"
+
+        query_list = []
+        for term in search_terms:
+            combined_query = f"{flairs_negated} AND {term}"
+            query_list.append(combined_query)
+
+        return self._parse_subreddit(
+            subreddit_display_name,
+            query_list,
+            model,
+            parse_limit,
+            replace_limit
+        )
+
+
+    def parse_subreddit_by_flair(
+            self,
+            subreddit_display_name: str,
+            flairs: list[str],
+            model: type[Base_Model] = CSV_Model,
+            search_terms: list[str] = None,
+            parse_limit: int = 10000,
+            replace_limit: int = None
+        ) -> Generator[Base_Model]:
+
+        prefix_flairs = map(
+            lambda x: "flair:" + x,
+            flairs
+        )
+        search_terms_query = " OR ".join(search_terms)
+
+        query_list = []
+        for flair in prefix_flairs:
+            combined_query = f"{flair} AND ({search_terms_query})"
+            query_list.append(combined_query)
+
+        return self._parse_subreddit(
+            subreddit_display_name,
+            query_list,
+            model,
+            parse_limit,
+            replace_limit
+        )
+
+
+    def _parse_subreddit(
+            self,
+            subreddit_display_name: str,
+            queries: list[str],
+            model: type[Base_Model] = CSV_Model,
             parse_limit: int = 10000,
             replace_limit: int = None
         ) -> Generator[Base_Model]:
@@ -49,16 +132,14 @@ class Extended_Reddit_RO(Reddit):
         if not subreddit_display_name:
             raise AttributeError("must provide subreddit name")
         
-        prefix_flairs = map(
-            lambda x: "flair:" + x,
-            flairs
-        )
         subreddit = self.subreddit(subreddit_display_name)
 
-        for flair in prefix_flairs:
-            for submission in subreddit.search(flair, limit=parse_limit):
+        for query in queries:
+            submissions = subreddit.search(query, limit=parse_limit)
 
-                submission_node = Model(
+            for submission in submissions:
+
+                submission_node = model(
                     submission.fullname,
                     submission.title,
                     submission.author_fullname,
@@ -87,7 +168,7 @@ class Extended_Reddit_RO(Reddit):
                     if comment.body == "[deleted]":
                         comment.body = None
 
-                    comment_node = Model(
+                    comment_node = model(
                         comment.fullname,
                         comment.body,
                         comment.author_fullname,
@@ -107,6 +188,7 @@ class Extended_Reddit_RO(Reddit):
                             comment.fullname
                         )
                     )
+
 
     @staticmethod
     def _pack_parent(comments: iter, parent: str) -> list[tuple[Comment, str]]:
